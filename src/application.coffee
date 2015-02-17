@@ -186,3 +186,15 @@ class exports.ApplicationManager
         pid = fs.readFileSync path.join(__dirname, '..', "#{name}.pid"), 'utf8'
         process.kill(pid)
         callback()
+
+    checkVersion: (appData, callback) ->
+        oldVersions = []
+        log.info 'Check cozy-dev version :'
+        child = exec 'npm show cozy-dev version', (err, stdout, stderr) ->
+            version = stdout.replace(/\n/g, '')
+            if version > appData.version
+                oldVersions.push "cozy-dev"
+            log.info 'Check cozy versions : '
+            @stackVersions (need) ->
+                if need
+                    oldVersions.push "cozy-dev"
