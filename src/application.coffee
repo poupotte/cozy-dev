@@ -4,6 +4,7 @@ log = require('printit')
     prefix: 'application'
 spawn = require('child_process').spawn
 path = require 'path'
+request = require 'request'
 
 fs = require 'fs'
 helpers = require './helpers'
@@ -118,6 +119,28 @@ class exports.ApplicationManager
                     callback err, false
                 else
                     callback null, true
+
+    stackVersions: (callback) ->
+        dsClient = new Client 'http://localhost:9101'
+        dsClient.post 'request/stackapplication/all/', {}, (err, res, body) ->
+            async.eachSeries body, (app, cb) ->
+                app = app.value
+                if app.lastVersion
+                    if app.version < app.lastVersion
+                        log.warn "#{app.name} : #{app.version} -> #{app.lastVersion}"
+                    else
+                        log.info "#{app.name} : #{app.version} -> #{app.lastVersion}"
+                    cb()
+                else
+                    request.get "https://raw.github.com/cozy/cozy-#{app.name}/master/package.json", (err, res, data) ->
+                        data = JSON.parse data
+                        if app.version < data.version
+                            log.warn "#{app.name} : #{app.version} -> #{data.version}"
+                        else
+                            log.info "#{app.name} : #{app.version} -> #{data.version}"
+                        cb()
+            , (err) ->
+                console.log err if err?
 
     addInDatabase: (manifest, callback) ->
         dsClient = new Client 'http://localhost:9101'

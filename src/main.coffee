@@ -5,6 +5,7 @@ log = require('printit')
     prefix: 'cozy-dev   '
 inquirer = require 'inquirer'
 async = require 'async'
+exec = require("child_process").exec
 
 Client = require("request-json").JsonClient
 Client::configure = (url, password, callback) ->
@@ -185,6 +186,7 @@ program
             log.info "Starting the virtual machine...this may take a while."
             vagrantManager.vagrantUp (code) -> cb null, code
         (cb) -> vagrantManager.virtualMachineStatus (status) -> cb()
+        (cb) -> vagrantManager.checkUpdates cb
     ], (err, results) ->
         [_, code] = results
 
@@ -194,6 +196,27 @@ program
         else
             msg = "An error occurred while your VMs was starting."
             log.error msg.red
+
+program
+.command "vm:versions"
+.description "Check cozy-dev versions."
+.action ->
+    log.info 'Check cozy-dev version :'
+    child = exec 'npm show cozy-dev version', (err, stdout, stderr) ->
+        version = stdout.replace(/\n/g, '')
+        if version > appData.version
+            log.info "Current version : #{version}"
+            log.info "Last version : #{appData.version}"
+            log.warn 'A new version is available'
+        else
+            log.info 'Version is up to date : #{appDate.version}'
+        log.info 'Check cozy versions : '
+        appManager.stackVersions (need) ->
+            if need
+                log.warn 'A new version is available'
+            else
+                log.info 'Version is up to date'
+
 
 haltOption = "Properly stop the virtual machine instead of simply " + \
              "suspending its execution"

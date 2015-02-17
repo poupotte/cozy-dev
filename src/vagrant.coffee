@@ -5,6 +5,7 @@ log = require('printit')
     prefix: 'vagrant    '
 Client = require('request-json').JsonClient
 exec = require('child_process').exec
+spawn = require('child_process').spawn
 compareVersions = require "mozilla-version-comparator"
 
 helpers = require './helpers'
@@ -163,3 +164,27 @@ class exports.VagrantManager
 
                     log.info "\t* #{app}#{info}: #{formattedStatus}"
                 callback isOkay
+
+    checkUpdates: (callback) ->
+        # Check cozy version
+        cmds =
+            name: 'vagrant'
+            args: ['ssh', '-c', 'cozy-monitor versions']
+
+
+        if helpers.isRunningOnWindows()
+            name = cmds.name
+            cmds.name = "cmd"
+            cmds.args.unshift name
+            cmds.args.unshift '/C'
+
+        console.log cmds
+        command = spawn cmds.name, cmds.args
+
+        versions = []
+        command.stdout.on 'data',  (data) ->
+            versions += data
+
+
+        command.on 'close', (code, signal) ->
+            console.log versions
